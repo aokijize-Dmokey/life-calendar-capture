@@ -1,13 +1,13 @@
-import chromium from "@sparticuz/chromium";
-import puppeteer from "puppeteer-core";
+const chromium = require("@sparticuz/chromium");
+const puppeteer = require("puppeteer-core");
 
-export default async function handler(req, res) {
-  let browser;
+module.exports = async (req, res) => {
+  const width = Number(req.query.width || 1179);
+  const height = Number(req.query.height || 2556);
+
+  let browser = null;
 
   try {
-    const width = Number(req.query.width || 1179);
-    const height = Number(req.query.height || 2556);
-
     browser = await puppeteer.launch({
       args: chromium.args,
       executablePath: await chromium.executablePath(),
@@ -21,28 +21,19 @@ export default async function handler(req, res) {
 
     const page = await browser.newPage();
 
-    await page.goto("https://thelifecyclecalendar.com", {
-      waitUntil: "domcontentloaded",
-      timeout: 15000,
+    await page.goto("https://thelifecalendar.com", {
+      waitUntil: "networkidle2",
     });
 
-    const buffer = await page.screenshot({
-      type: "png",
-      fullPage: true,
-    });
+    const screenshot = await page.screenshot({ type: "png" });
 
     res.setHeader("Content-Type", "image/png");
-    res.setHeader("Cache-Control", "no-store");
-    res.status(200).send(buffer);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      error: "capture_failed",
-      message: error.message,
-    });
+    res.status(200).send(screenshot);
+  } catch (err) {
+    // Important: renvoyer l’erreur pour les logs Vercel
+    console.error(err);
+    res.status(500).send(String(err));
   } finally {
     if (browser) await browser.close();
   }
-}
-
+};
