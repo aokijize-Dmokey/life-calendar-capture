@@ -1,9 +1,7 @@
 {
-  "name": "life-calendar-capture",
-  "private": true,
   "type": "module",
   "dependencies": {
-    "@sparticuz/chromium": "^...",
-    "puppeteer-core": "..."
+    "@sparticuz/chromium": "^119.0.0",
+    "puppeteer-core": "^22.0.0"
   }
 }
