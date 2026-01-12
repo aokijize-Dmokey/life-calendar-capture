@@ -2,32 +2,47 @@ import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 
 export default async function handler(req, res) {
-  const width = Number(req.query.width || 1179);
-  const height = Number(req.query.height || 2556);
-
-  const browser = await puppeteer.launch({
-    args: chromium.args,
-    executablePath: await chromium.executablePath(),
-    defaultViewport: {
-      width,
-      height,
-      deviceScaleFactor: 2
-    },
-    headless: chromium.headless
-  });
+  let browser;
 
   try {
-    const page = await browser.newPage();
-    await page.goto("https://thelifecyclecalendar.com", {
-      waitUntil: "networkidle2"
+    const width = Number(req.query.width || 1179);
+    const height = Number(req.query.height || 2556);
+
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      defaultViewport: {
+        width,
+        height,
+        deviceScaleFactor: 2,
+      },
     });
 
-    await page.waitForTimeout(3000);
+    const page = await browser.newPage();
 
-    const image = await page.screenshot({ type: "png" });
+    await page.goto("https://thelifecyclecalendar.com", {
+      waitUntil: "domcontentloaded",
+      timeout: 15000,
+    });
+
+    const buffer = await page.screenshot({
+      type: "png",
+      fullPage: true,
+    });
+
     res.setHeader("Content-Type", "image/png");
-    res.status(200).send(image);
+    res.setHeader("Cache-Control", "no-store");
+    res.status(200).send(buffer);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      error: "capture_failed",
+      message: error.message,
+    });
   } finally {
-    await browser.close();
+    if (browser) await browser.close();
   }
 }
+
